@@ -1,2 +1,1 @@
-# tc3006c_m1_portafoliodeimplementacion
-Módulo 1
+# Portafolio de implementación de Estadística para la ciencia de datos. Módulo 1
