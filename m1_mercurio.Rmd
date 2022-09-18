@@ -1,0 +1,395 @@
+---
+title: "Construcción de un modelo estadístico base"
+author: "Javier de Golferichs (A01139500)"
+date: "16 de septiembre de 2022"
+output:
+  pdf_document:
+    number_sections: true
+    fig_caption: yes
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+\pagebreak
+
+# Resumen
+
+Se usa la base de datos `mercurio.csv`, para estudiar eventos relacionados con la concentración de mercurio en múltiples lagos con los que se recuperaron los datos de la base de datos.
+
+Se hizo una exploración de las correlaciones de las variables.
+
+Para comprobar si la alcalinidad, calcio y clorofila, influye en la concentración de mercurio, se aplicaron regresiones lineales a las variables con respecto a la concentración de mercurio. Se encontro que si influyen 
+
+Se realiza una prueba de hipótesis para verificar si la concentración de mercurio en los lagos es dañina para la salud humana, si es superior a 0.5 mg Hg/kg, de lo cual no se rechaza $H_0$, por lo que ser encuentra que no lo es. Para esto también se hace un análisis de intervalos de confianza.
+
+# Introduccion
+
+
+
+La base de datos utilizada tiene 12 variables y 53 observables cada una, entre las que las variables categoricas son el lago del que se tomo la muestra y el indicador de madurez de los peces.
+
+Las preguntas que se busca responder son si la concentración de alcalinidad, calcio y clorofila influyen en la concentración de mercurio presente en los peces y si la concentración de mercurio por kilogramo en los peces del estudio es dañina para la salud humana.
+
+# Exploración de la base de datos
+
+```{r carga_de_datos, echo=FALSE, warning=FALSE}
+M <- read.csv("mercurio.csv")
+```
+
+Se procede ahora a encontrar estadísticos media, mediana, moda, varianza, desviación estándar, y longitud de las diferentes variables de la tabla.
+
+```{r parametros, echo=FALSE, warning=FALSE}
+mean_M <- sapply(M, 
+                 mean)
+median_M <- sapply(M, 
+                   median)
+mode_M <- sapply(M,
+                 mode)
+var_M <- sapply(M, 
+                var)
+sd_M <- sapply(M, 
+               sd)
+max_M <- sapply(M, 
+                max)
+min_M <- sapply(M, 
+                min)
+n_M <- sapply(M,
+              length)
+n_lago <- tapply(M$X1, 
+           M$X2,
+           length)
+n_madurez <- tapply(M$X1, 
+           M$X12,
+           length)
+```
+
+A continuación se presentan los diagramas de caja y bigote de las diferentes variables, para hacer una exploración de los cuartiles y datos atípicos.
+
+```{r boxplots, echo=FALSE, fig.cap="\\label{fig:boxplots}Boxplots de variables numéricas."}
+
+par(mfrow=c(3,2))
+
+outliers <- boxplot(M$X3, 
+                    col = 2:5, 
+                    horizontal = TRUE,
+                    main = "Boxplot Alcalinidad")
+mtext("mg/l de carbonato de calcio",side=1,line=3)
+
+outliers <- boxplot(M$X4, 
+                    col = 2:5, 
+                    horizontal = TRUE,
+                    main = "Boxplot PH")
+mtext("PH",
+      side=1,
+      line=3)
+
+outliers <- boxplot(M$X5, 
+                    col = 2:5, 
+                    horizontal = TRUE,
+                    main = "Boxplot Calcio")
+mtext("mg/l",
+      side=1,
+      line=3)
+
+outliers <- boxplot(M$X6, 
+                    col = 2:5, 
+                    horizontal = TRUE,
+                    main = "Clorofila")
+mtext("mg/l",
+      side=1,
+      line=3)
+
+outliers <- boxplot(M$X7, 
+                    col = 2:5, 
+                    horizontal = TRUE,
+                    main = "Concentración media de mercurio")
+mtext("ppm",
+      side=1,
+      line=3)
+
+outliers <- boxplot(M$X8, 
+                    col = 2:5, 
+                    horizontal = TRUE,
+                    main = "Número de peces estudiados en el lago")
+mtext("Peces",
+      side=1,
+      line=3)
+```
+
+En la figura \ref{fig:conteo_madurez} se hace un conteo de los lagos con peces maduros y jóvenes.
+
+```{r barras, echo = FALSE, out.width="50%", fig.align = 'center', fig.cap="\\label{fig:conteo_madurez}Conteo de lagos con peces jovenes y maduros"}
+
+barplot(n_madurez,
+        main = "Conteo de lagos con indicador de madurez en peces", 
+        xlab = "Indicador", 
+        ylab = "Conteo")
+```
+
+En la figura \ref{fig:conteo_madurez}, se observa que el conteo de lagos con peces maduroz es de 43 y con peces jovenes 10.
+
+\pagebreak
+
+# Análisis de datos y preguntas base
+
+Se inicia por analizar la matríz de correlaciones de las variables.
+
+```{r mapa_correlacion, echo=FALSE, warning=FALSE, fig.cap="\\label{fig:mat_cor}Matriz de correlación de variables", fig.align = 'center', out.width="50%"}
+library("corrplot")
+cor_M <- cor(M[,3:11],M[3:11], 
+             method="pearson",
+             use="pairwise.complete.obs")
+corrplot(cor_M,
+         method="color", 
+         addCoef.col = "black",
+         main = "Matriz de correlación",
+         addgrid.col = "grey",
+         tl.col = 'black',
+         col = COL2('RdBu', 10),order = 'hclust', addrect = 2)
+```
+
+De la figura \ref{fig:mat_cor}, se encuentra que las variables con mayor correlación, explicación de la varianza de los datos, son el nivel de alcalinidad ($X3$) y el PH ($X4$) con la regresión del nivel de mercurio esperado en 3 años. Mientras que al tiempo presente, se encuentra que la mayor correlación se encuentra entre $X3$ y $X11$, en donde la alcalinidad se relaciona con el máximo encontrado, tal que a mayor alcalinidad, menor concentración de mercurio se espera.
+
+## Influencia de alcalinidad, concentración de clorofila y concentración de calcio en concentración de mercurio.
+
+Con base en los resultados de la figura \ref{fig:mat_cor}, se hacen regresiones lineales para las variables de alcalinidad, clorofila y calcio, para estudiar su influencia en la concentración de mercurio.
+
+```{r regresion_lineal, echo=FALSE, warning=TRUE, fig.cap="\\label{fig:regresiones}Matriz de correlación de variables contra resultados de mercurio y cantidad de peces", fig.align = 'center', out.width="50%"}
+beta_1_X3 <- (cov(M$X3,
+               M$X11))/var(M$X11)
+beta_0_X3 <- mean(M$X3) - beta_1_X3*mean(M$X11)
+
+par(mfrow=c(3,1))
+
+plot(M$X3,
+     M$X11, 
+     main = 'Regresión de alcalinidad', 
+     xlab = 'Alcalinidad', 
+     ylab = 'Concentración de mercurio')
+par(new=TRUE)
+curve(x*beta_1_X3+beta_0_X3, 
+      xaxt='n', 
+      ann=FALSE, 
+      yaxt='n',
+      col = 'blue')
+
+beta_1_X5 <- (cov(M$X5,
+               M$X11))/var(M$X11)
+beta_0_X5 <- mean(M$X5) - beta_1_X5*mean(M$X11)
+plot(M$X5,
+     M$X11, 
+     main = 'Regresión de clorofila', 
+     xlab = 'Concentración de clorofila', 
+     ylab = 'Concentración de mercurio')
+par(new=TRUE)
+curve(x*beta_1_X5+beta_0_X5, 
+      xaxt='n', 
+      ann=FALSE, 
+      yaxt='n',
+      col = 'blue')
+
+beta_1_X6 <- (cov(M$X6,
+               M$X11))/var(M$X11)
+beta_0_X6 <- mean(M$X6) - beta_1_X6*mean(M$X11)
+plot(M$X6,
+     M$X11, 
+     main = 'Regresión de calcio', 
+     xlab = 'Concentración de calcio', 
+     ylab = 'Concentración de mercurio')
+par(new=TRUE)
+curve(x*beta_1_X6 + beta_0_X6, 
+      xaxt='n', 
+      ann=FALSE, 
+      yaxt='n',
+      col = 'blue')
+```
+
+Se observa que en las tres gráficas de la figura \ref{fig:regresion}, los datos están por debajo de la línea de regresión. Se hace una prueba de normalidad de datos con respecto a la regresión con una prueba de Shapiro.
+
+```{r prueba_de_shapiro, echo=FALSE}
+regresion_X3 = lm(M$X3~M$X11)
+shapiro.test(regresion_X3$residuals)$p.value
+regresion_X5 = lm(M$X5~M$X11)
+shapiro.test(regresion_X5$residuals)$p.value
+regresion_X6 = lm(M$X6~M$X11)
+shapiro.test(regresion_X6$residuals)$p.value
+```
+En este caso, porque la normalidad es menor que $\alpha$, se rechaza $H_0:$ los residuos se comportan con una distribución normal.
+
+Por esto, se realiza una regresión logarítmica.
+
+```{r logaritmica, echo=FALSE, , out.width="50%", fig.align = 'center'}
+regresion_X3 = lm(log(M$X3)~M$X11)
+shapiro.test(regresion_X3$residuals)$p.value
+regresion_X5 = lm(log(M$X5)~M$X11)
+shapiro.test(regresion_X5$residuals)$p.value
+regresion_X6 = lm(log(M$X6)~M$X11)
+shapiro.test(regresion_X6$residuals)$p.value
+
+par(mfrow=c(3,1))
+
+
+plot(M$X3,
+     M$X11, 
+     main = 'Regresión de alcalinidad', 
+     xlab = 'Alcalinidad', 
+     ylab = 'Concentración de mercurio')
+par(new=TRUE)
+curve(log(x)*-2.614 + 4.342, 
+      xaxt='n', 
+      ann=FALSE, 
+      yaxt='n',
+      col = 'blue')
+
+plot(M$X5,
+     M$X11, 
+     main = 'Regresión de clorofila', 
+     xlab = 'Concentración de clorofila', 
+     ylab = 'Concentración de mercurio')
+par(new=TRUE)
+curve(log(x)*-2.047 + 3.471, 
+      xaxt='n', 
+      ann=FALSE, 
+      yaxt='n',
+      col = 'blue')
+
+plot(M$X6,
+     M$X11, 
+     main = 'Regresión de calcio', 
+     xlab = 'Concentración de calcio', 
+     ylab = 'Concentración de mercurio')
+par(new=TRUE)
+curve(log(x)*-2.047 + 3.471, 
+      xaxt='n', 
+      ann=FALSE, 
+      yaxt='n',
+      col = 'blue')
+```
+
+Ahora, ya que el valor p obtenido con el test de Shapiro es superior a $\alpha$, se considera que si siguen una distribución normal.
+
+
+```{r normalidad_residuos, echo=FALSE, warning=FALSE, fig.align = 'center',fig.cap="\\label{fig:qqplotlog}QQplot y distribución normal con transformación logaritmica.", warning=FALSE, out.width="50%", fig.align = 'center'}
+
+par(mfrow=c(3,2))
+
+qqnorm(regresion_X3$residuals)
+qqline(regresion_X3$residuals)
+hist(regresion_X3$residuals,
+     freq=FALSE,
+     main = "Hist. regresión de los residuos de Alcalinidad")
+lines(density(regresion_X3$residual),
+      col="red")
+curve(dnorm(x,
+            mean = mean(regresion_X3$residuals),
+            sd = sd(regresion_X3$residuals)), 
+      from=-3,
+      to=3,
+      add=TRUE, 
+      col="blue",
+      lwd=2)
+
+qqnorm(regresion_X5$residuals)
+qqline(regresion_X5$residuals)
+hist(regresion_X5$residuals,
+     freq=FALSE,
+     main = "Hist. regresión de los residuos de Alcalinidad")
+lines(density(regresion_X5$residual),
+      col="red")
+curve(dnorm(x,
+            mean = mean(regresion_X5$residuals),
+            sd = sd(regresion_X5$residuals)), 
+      from=-3,
+      to=3,
+      add=TRUE, 
+      col="blue",
+      lwd=2)
+
+qqnorm(regresion_X6$residuals)
+qqline(regresion_X6$residuals)
+hist(regresion_X6$residuals,
+     freq=FALSE,
+     main = "Hist. regresión de los residuos de Alcalinidad")
+lines(density(regresion_X6$residual),
+      col="red")
+curve(dnorm(x,
+            mean = mean(regresion_X6$residuals),
+            sd = sd(regresion_X6$residuals)), 
+      from=-3,
+      to=3,
+      add=TRUE, 
+      col="blue",
+      lwd=2)
+
+```
+
+La distribución normal se observa en los histogramas de la figura \ref{fig:qqplotlog}
+
+```{r homeocedasticidad, echo=FALSE, fig.cap="\\label{fig:homeocedasticidad}Homeocedasticidad", warning=FALSE, fig.align = 'center', out.width="50%", fig.align = 'center'}
+par(mfrow=c(3,1))
+
+plot(regresion_X3$fitted.values,
+     regresion_X3$residuals)
+abline(h=0, col="blue")
+plot(regresion_X5$fitted.values,
+     regresion_X5$residuals)
+abline(h=0, col="blue")
+plot(regresion_X6$fitted.values,
+     regresion_X6$residuals)
+abline(h=0, col="blue")
+```
+
+En la figura \ref{fig:homeocedasticidad} se presenta la distribución de residuos con respecto a la media 0, en donde se observa una distribución aleatoria.
+
+\pagebreak
+
+## Prueba de hipótesis para analizar efectos en la salud con concentraciones superiores a 0.5 mg de Hg/kg.
+
+Para este problema se considera oportuno que $H_0: \mu_{min} <= 0.5$ y $H_1: \mu_{min} > 0.5$.
+
+Se inicia por encontrar la cantidad de datos de $X9$, concentración de mercurio mínima encontrada, que sea igual o inferior a 0.5 mg de Hg/kg.
+
+```{r prueba_de_hipotesis, echo=FALSE, warning=FALSE}
+alfa <- 0.01
+# ¿como calculamos el valor frontera?
+z0 <- qnorm(alfa) # solo alfa porque es un problema de una sola cola
+cat("z0 = ",z0)
+x <- sum(M$X9 > 0.5)
+n <- length(M$X9)
+p <- x/n
+P <- 0.5
+sp <- sqrt(P*(1-P)/n)
+ze <- (p-P)/sp
+cat('z* = ',
+    ze, '\n')
+vp <- pnorm(ze)
+cat('valor p = ', vp)
+```
+
+Como el valor p es menor que $\alpha$ y $z_0$ es mayor que $z*$, por lo que no se rechaza $H_0$.
+
+
+## Conclusion
+
+Para este estudio se utilizaron las herramientas estadísticas de regresión lineal y prueba de hipótesis.
+
+De este estudio se concluye que la concentración de clorofila, calcio y la alcalinidad del lago si tiene una repercusión en la concentración de mercurio del lago a tres años.
+
+A su vez también se llego a que con base en la muestra, los niveles de mercurio minimo encontrado promedio no supera el establecido por el estudio, por lo que no suponen un riesgo para la salud.
+
+
+[]: <> (HACER ANÁLISIS DE INTERVALOS DE CONFIANZA: recurrir a utilizar la Z para el teorema central del límite. Hacer comparaciones múltiples, que vimos en el ANOVA, en tiempos de secado, sabíamos que había una media que es diferente pero no sabíamos cual. Con Tukey hace las comparaciones, NO TIENE CASO TUKEY ).
+
+[listo1]: <> (añadir prueba de hipótesis)
+
+[listo2]: <> (añadir regresión lineal, convertido a log)
+
+[p3]: <> (añadir conclusiones generales)
+
+# Anexos
+
+[GitHub (oprima aqui)]()
+
+[Drive (oprima aqui)]()
