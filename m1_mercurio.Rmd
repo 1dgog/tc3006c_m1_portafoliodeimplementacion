@@ -26,13 +26,17 @@ Se realiza una prueba de hipótesis para verificar si la concentración de mercu
 
 # Introduccion
 
-
-
-La base de datos utilizada tiene 12 variables y 53 observables cada una, entre las que las variables categoricas son el lago del que se tomo la muestra y el indicador de madurez de los peces.
+La vida marina es afectada por la contaminación causada por la actividad industrial. La ingesta de alimentos marinos puede llevar a intoxicación por mercurio, pues este puede concentrarse en los tejidos de las especies, y llevar a los consumidores a enfermarse por esto mismo.
+ 
+El estudio tiene como intención estudiar como la concentración de mercurio puede estar relacionada con concentraciones de otras substancias y como esta puede ser ligada a los efectos cuando es ingerida por humanos.
 
 Las preguntas que se busca responder son si la concentración de alcalinidad, calcio y clorofila influyen en la concentración de mercurio presente en los peces y si la concentración de mercurio por kilogramo en los peces del estudio es dañina para la salud humana.
 
-# Exploración de la base de datos
+# Análisis de resultados
+
+## Exploración de la base de datos
+
+La base de datos utilizada tiene 12 variables y 53 observables cada una, entre las que las variables categoricas son el lago del que se tomo la muestra y el indicador de madurez de los peces.
 
 ```{r carga_de_datos, echo=FALSE, warning=FALSE}
 M <- read.csv("mercurio.csv")
@@ -132,7 +136,7 @@ En la figura \ref{fig:conteo_madurez}, se observa que el conteo de lagos con pec
 
 \pagebreak
 
-# Análisis de datos y preguntas base
+
 
 Se inicia por analizar la matríz de correlaciones de las variables.
 
@@ -368,10 +372,10 @@ vp <- pnorm(ze)
 cat('valor p = ', vp)
 ```
 
-Como el valor p es menor que $\alpha$ y $z_0$ es mayor que $z*$, por lo que no se rechaza $H_0$.
+Como el valor p es menor que $\alpha$ y $z_0$ es mayor que $z*$, por lo que no se rechaza $H_0$, y se concluye que la concentración de mercurio no supera el establecido como dañino para la salud.
 
 
-## Conclusion
+# Conclusion
 
 Para este estudio se utilizaron las herramientas estadísticas de regresión lineal y prueba de hipótesis.
 
@@ -380,7 +384,7 @@ De este estudio se concluye que la concentración de clorofila, calcio y la alca
 A su vez también se llego a que con base en la muestra, los niveles de mercurio minimo encontrado promedio no supera el establecido por el estudio, por lo que no suponen un riesgo para la salud.
 
 
-[]: <> (HACER ANÁLISIS DE INTERVALOS DE CONFIANZA: recurrir a utilizar la Z para el teorema central del límite. Hacer comparaciones múltiples, que vimos en el ANOVA, en tiempos de secado, sabíamos que había una media que es diferente pero no sabíamos cual. Con Tukey hace las comparaciones, NO TIENE CASO TUKEY ).
+[hola]: <> (HACER ANÁLISIS DE INTERVALOS DE CONFIANZA: recurrir a utilizar la Z para el teorema central del límite. Hacer comparaciones múltiples, que vimos en el ANOVA, en tiempos de secado, sabíamos que había una media que es diferente pero no sabíamos cual. Con Tukey hace las comparaciones, NO TIENE CASO TUKEY )
 
 [listo1]: <> (añadir prueba de hipótesis)
 
@@ -390,6 +394,6 @@ A su vez también se llego a que con base en la muestra, los niveles de mercurio
 
 # Anexos
 
-[GitHub (oprima aqui)]()
+[GitHub (oprima aqui)](https://github.com/1dgog/tc3006c_m1_portafoliodeimplementacion/blob/main/m1_mercurio.Rmd)
 
-[Drive (oprima aqui)]()
+[Drive (oprima aqui)](https://drive.google.com/file/d/1HwKj22xbLxrdbfhtCSF99wEnIhVN_pFh/view?usp=sharing)
